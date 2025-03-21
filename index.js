@@ -16,12 +16,13 @@ const tlsServerCrt = fs.readFileSync('./tls/webapp.crt.pem');
 
 const { scrypt } = require('scrypt-pbkdf');
 const derivedKeyLength = 32  // in bytes
+
 const SCRYPT_FAST_PARAMS = { N: 2 ** 14, r: 8, p: 1 };  // Rápido (~50-100ms)
 const SCRYPT_SECURE_PARAMS = { N: 2 ** 20, r: 16, p: 1 }; // Mucho más lento (~3-5s)
+
 const USERS_FILE = 'users.json';
 
 const app = express();
-const port = 443;
 
 
 app.use(logger('dev'));
