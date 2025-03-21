@@ -8,7 +8,11 @@ const cookieParser = require('cookie-parser');
 const crypto = require('crypto');
 const jwtSecret = crypto.randomBytes(16);
 
+const https = require('https');
 const fs = require('fs');
+
+const tlsServerKey = fs.readFileSync('./tls/webapp.key.pem');
+const tlsServerCrt = fs.readFileSync('./tls/webapp.crt.pem');
 
 const { scrypt } = require('scrypt-pbkdf');
 const derivedKeyLength = 32  // in bytes
@@ -17,7 +21,7 @@ const SCRYPT_SECURE_PARAMS = { N: 2 ** 20, r: 16, p: 1 }; // Mucho más lento (~
 const USERS_FILE = 'users.json';
 
 const app = express();
-const port = 3000;
+const port = 443;
 
 
 app.use(logger('dev'));
@@ -168,8 +172,8 @@ app.post('/login-fast',
   (req, res) => {
     const jwtClaims = {
       sub: req.user.username,
-      iss: 'localhost:3000',
-      aud: 'localhost:3000',
+      iss: 'localhost:443',
+      aud: 'localhost:443',
       exp: Math.floor(Date.now() / 1000) + 604800,
       role: 'user'
     };
@@ -185,8 +189,8 @@ app.post('/login-secure',
   (req, res) => {
     const jwtClaims = {
       sub: req.user.username,
-      iss: 'localhost:3000',
-      aud: 'localhost:3000',
+      iss: 'localhost:443',
+      aud: 'localhost:443',
       exp: Math.floor(Date.now() / 1000) + 604800,
       role: 'user'
     };
@@ -209,9 +213,31 @@ app.use((err, req, res, next) => {
   res.status(500).send('Something broke!'); // no deberia de pasar nunca
 });
 
-app.listen(port, () => {
-  console.log(`Example app listening at http://localhost:${port}`);
+// app.listen(port, () => {
+//   console.log(`Example app listening at http://localhost:${port}`);
+// });
+
+
+const httpsOptions = {
+  key: tlsServerKey,
+  cert: tlsServerCrt
+};
+var server = https.createServer(httpsOptions, app);
+
+/**
+* Listen on provided port, on all network interfaces.
+*/
+server.listen(443);
+server.on('listening', () => {
+  console.log('HTTPS server running. Test it at https://localhost');
 });
+
+
+
+
+
+
+
 
 
 
