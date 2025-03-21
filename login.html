@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Login</title>
+</head>
+
+<body>
+    <p><strong>Want to access your personal web page?</strong></p>
+    <p>Please log in to proceed FAST</p>
+    <form action="/login-fast" method="post">  <!-- when the formulary is submitted, it will be POSTed to /login-->
+        <div>
+            <label>Username:</label>
+            <input type="text" name="username" />  <!-- the name MUST match the one defined in the local 'username-password' strategy -->
+        </div>
+        <div>
+            <label>Password:</label>
+            <input type="password" name="password" /> <!-- the name MUST match the one defined in the local 'username-password' strategy -->
+        </div>
+        <div>
+            <input type="submit" value="Log In" />
+        </div>
+    </form>
+
+    </div>
+    <p>Please log in to proceed SECURE</p>
+    <form action="/login-secure" method="post">  <!-- when the formulary is submitted, it will be POSTed to /login-->
+        <div>
+            <label>Username:</label>
+            <input type="text" name="username" />  <!-- the name MUST match the one defined in the local 'username-password' strategy -->
+        </div>
+        <div>
+            <label>Password:</label>
+            <input type="password" name="password" /> <!-- the name MUST match the one defined in the local 'username-password' strategy -->
+        </div>
+        <div>
+            <input type="submit" value="Log In" />
+        </div>
+    </form>
+    </div>
+    <p>Don't have an account yet? <a href="/register">Sign in</a> </p>
+</body>
+
+</html>

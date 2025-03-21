@@ -1,0 +1,9 @@
+[
+  {
+    "username": "l",
+    "salt_fast": "CJ775EevpJCnx037dwgIPQ==",
+    "salt_secure": "6P8coL5mGnXv4Ikl2dueUA==",
+    "password_scrypt_fast": "U+DrDmOIVOHAMpNg9AFAgEZsyMLl9/l6Nu6WSFINfG8=",
+    "password_scrypt_secure": "hBiIxXy1zUza6V5Vj3QDlX0GE5JNPIKN6J08r4D7yhg="
+  }
+]
