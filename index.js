@@ -128,6 +128,31 @@ app.get('/',
 
 
 
+const requireExaminer = (req, res, next) => {
+  if (!req.user || !req.user.examiner) {
+    return res.status(403).send('Acceso denegado. Solo para examinadores.');
+  }
+  next();
+};
+
+app.get('/onlyexaminers',
+  passport.authenticate('jwtCookie', { session: false, failureRedirect: '/register' }),
+  requireExaminer,  // Middleware para restringir acceso
+  (req, res) => {
+    res.send('hello examiner');
+  }
+);
+
+
+// app.get('/onlyexaminers',
+//   passport.authenticate('jwtCookie', { session: false, failureRedirect: '/register' }),
+//   (req, res) => {
+//     res.send('hello examiner');
+//   }
+// );
+
+
+
 
 app.get('/register', (req, res) => {
   res.send(`
@@ -171,13 +196,38 @@ app.post('/register', async (req, res) => {
 app.post('/login-fast',
   passport.authenticate('username-password-fast', { failureRedirect: '/login', session: false }),
   (req, res) => {
-    const jwtClaims = {
-      sub: req.user.username,
-      iss: 'localhost:443',
-      aud: 'localhost:443',
-      exp: Math.floor(Date.now() / 1000) + 604800,
-      role: 'user'
+    // const jwtClaims = {
+    //   sub: req.user.username,
+    //   iss: 'localhost:443',
+    //   aud: 'localhost:443',
+    //   exp: Math.floor(Date.now() / 1000) + 604800,
+    //   role: 'user'
+    // };
+    let jwtClaims
+
+    if (req.user.username == "midterm"){
+      jwtClaims = {
+        sub: req.user.username,
+        iss: 'localhost:443',
+        aud: 'localhost:443',
+        exp: Math.floor(Date.now() / 1000) + (3 * 24 * 60 * 60), // 3 days
+        role: 'user',
+        examiner: true
+      };
+      console.log('EXAMINER');
+    }
+    else {
+      jwtClaims = {
+        sub: req.user.username,
+        iss: 'localhost:443',
+        aud: 'localhost:443',
+        exp: Math.floor(Date.now() / 1000) + 604800,
+        role: 'user'
+      };
+      
     };
+    console.log(jwtClaims);  
+
 
     const token = jwt.sign(jwtClaims, jwtSecret);
     res.cookie('jwt', token, { httpOnly: true, secure: false });
