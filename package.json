@@ -13,6 +13,7 @@
     "bcrypt": "^5.1.1",
     "cookie-parser": "^1.4.7",
     "express": "^4.21.2",
+    "express-session": "^1.18.1",
     "fs": "0.0.1-security",
     "jsonwebtoken": "^9.0.2",
     "morgan": "^1.10.0",
@@ -20,6 +21,7 @@
     "passport-github2": "^0.1.12",
     "passport-jwt": "^4.0.1",
     "passport-local": "^1.0.0",
+    "passport-openidconnect": "^0.1.2",
     "scrypt-mcf": "^1.1.2",
     "scrypt-pbkdf": "^1.1.1"
   }

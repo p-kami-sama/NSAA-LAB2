@@ -28,14 +28,26 @@ const GITHUB_CLIENT_ID = 'Ov23li6w5622M7kiYDqJ';
 const GITHUB_CLIENT_SECRET = 'b8d740b7b572f6e7c41da15c57e32816f0f2218b';
 
 
+// OpenID Connect
+const session = require('express-session');
+const { console } = require('inspector');
+const OpenIDConnectStrategy = require('passport-openidconnect').Strategy;
+
+
 const app = express();
 
 // Middlewares
+app.use(session({
+  secret: '12345', // ⚡ pon un valor aleatorio seguro en producción
+  resave: false,
+  saveUninitialized: true,
+  cookie: { secure: true } // porque usamos HTTPS
+}));
 app.use(logger('dev'));
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use(passport.initialize());
-
+app.use(passport.session()); // 👈 necesario para passport-openidconnect
 
 
 
@@ -419,3 +431,70 @@ function registerOAuthUser(username) {
     writeUsers(users);
   }
 }
+
+function registerOpenIDConnectUser(username, sub) {
+  const users = readUsers();
+  const exists = users.find(u => u.username === username);
+  if (!exists) {
+    users.push({
+      username,
+      provider: 'OpenIDConnect-google',
+      password_scrypt_fast: null,
+      password_scrypt_secure: null,
+      salt_fast: null,
+      salt_secure: null,
+      sub: sub,
+    });
+    writeUsers(users);
+  }
+}
+
+
+
+
+const OIDC_CLIENT_ID = '318089989598-87dthk6obu5bj505o3snp4cemf0e9eoa.apps.googleusercontent.com';
+const OIDC_CLIENT_SECRET = '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';
+const OIDC_ISSUER = 'https://accounts.google.com'; 
+const OIDC_AUTHORIZATION_URL = 'https://accounts.google.com/o/oauth2/v2/auth';
+const OIDC_TOKEN_URL = 'https://oauth2.googleapis.com/token';
+const OIDC_USERINFO_URL = 'https://openidconnect.googleapis.com/v1/userinfo';
+const OIDC_CALLBACK_URL = 'https://localhost:3000/auth/oidc/callback';
+
+passport.use('oidc', new OpenIDConnectStrategy({
+    issuer: OIDC_ISSUER,
+    authorizationURL: OIDC_AUTHORIZATION_URL,
+    tokenURL: OIDC_TOKEN_URL,
+    userInfoURL: OIDC_USERINFO_URL,
+    clientID: OIDC_CLIENT_ID,
+    clientSecret: OIDC_CLIENT_SECRET,
+    callbackURL: OIDC_CALLBACK_URL,
+    scope: 'openid profile email'
+  },
+  function(issuer, sub, profile, done) {   
+    const username = sub.emails[0].value;
+    registerOpenIDConnectUser(username, sub)
+    return done(null, { username });
+  }
+));
+// Iniciar login OpenID Connect
+app.get('/auth/oidc',
+  passport.authenticate('oidc')
+);
+
+// Callback de OpenID Connect
+app.get('/auth/oidc/callback',
+  passport.authenticate('oidc', { failureRedirect: '/login', session: false }),
+  (req, res) => {
+    const jwtClaims = {
+      sub: req.user.username,
+      iss: 'localhost:3000',
+      aud: 'localhost:3000',
+      exp: Math.floor(Date.now() / 1000) + 604800, // 1 semana
+      role: 'oidc'
+    };
+    console.log('DATA from /auth/oidc/callback:', jwtClaims);
+    const token = jwt.sign(jwtClaims, jwtSecret);
+    res.cookie('jwt', token, { httpOnly: true, secure: true });
+    res.redirect('/');
+  }
+);
