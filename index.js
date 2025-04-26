@@ -7,12 +7,10 @@ const jwt = require('jsonwebtoken');
 const cookieParser = require('cookie-parser');
 const crypto = require('crypto');
 const jwtSecret = crypto.randomBytes(16);
-
-const https = require('https');
+const port = 3000;
+ const https = require('https');
 const fs = require('fs');
 
-const tlsServerKey = fs.readFileSync('./tls/webapp.key.pem');
-const tlsServerCrt = fs.readFileSync('./tls/webapp.crt.pem');
 
 const { scrypt } = require('scrypt-pbkdf');
 const derivedKeyLength = 32  // in bytes
@@ -22,9 +20,17 @@ const SCRYPT_SECURE_PARAMS = { N: 2 ** 20, r: 16, p: 1 }; // Mucho más lento (~
 
 const USERS_FILE = 'users.json';
 
+
+
+//  OAuth2 Giyhub
+const GitHubStrategy = require('passport-github2').Strategy;
+const GITHUB_CLIENT_ID = 'Ov23li6w5622M7kiYDqJ';
+const GITHUB_CLIENT_SECRET = 'b8d740b7b572f6e7c41da15c57e32816f0f2218b';
+
+
 const app = express();
 
-
+// Middlewares
 app.use(logger('dev'));
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
@@ -99,6 +105,47 @@ passport.use('jwtCookie', new JwtStrategy(
 
 
 
+
+// OAuth2 passport
+passport.use(new GitHubStrategy({
+    clientID: GITHUB_CLIENT_ID,
+    clientSecret: GITHUB_CLIENT_SECRET,
+    callbackURL: "https://localhost:3000/auth/github/callback"
+  },
+  function(accessToken, refreshToken, profile, done) {
+    registerOAuthUser(profile.username);
+    return done(null, { username: profile.username });
+  }
+));
+
+
+// GitHub login
+app.get('/auth/github',
+  passport.authenticate('github', { scope: ['user:email'] })
+);
+
+// GitHub callback
+app.get('/auth/github/callback',
+  passport.authenticate('github', { failureRedirect: '/login', session: false }),
+  (req, res) => {
+    const jwtClaims = {
+      sub: req.user.username,
+      iss: 'localhost:3000',
+      aud: 'localhost:3000',
+      exp: Math.floor(Date.now() / 1000) + 604800,
+      role: 'github'
+    };
+
+    const token = jwt.sign(jwtClaims, jwtSecret);
+    res.cookie('jwt', token, { httpOnly: true, secure: true });
+    res.redirect('/');
+  }
+);
+
+
+
+
+
 app.get('/login', (req, res) => {
   res.sendFile('login.html', { root: __dirname });
 });
@@ -144,15 +191,6 @@ app.get('/onlyexaminers',
 );
 
 
-// app.get('/onlyexaminers',
-//   passport.authenticate('jwtCookie', { session: false, failureRedirect: '/register' }),
-//   (req, res) => {
-//     res.send('hello examiner');
-//   }
-// );
-
-
-
 
 app.get('/register', (req, res) => {
   res.send(`
@@ -196,20 +234,13 @@ app.post('/register', async (req, res) => {
 app.post('/login-fast',
   passport.authenticate('username-password-fast', { failureRedirect: '/login', session: false }),
   (req, res) => {
-    // const jwtClaims = {
-    //   sub: req.user.username,
-    //   iss: 'localhost:443',
-    //   aud: 'localhost:443',
-    //   exp: Math.floor(Date.now() / 1000) + 604800,
-    //   role: 'user'
-    // };
     let jwtClaims
 
     if (req.user.username == "midterm"){
       jwtClaims = {
         sub: req.user.username,
-        iss: 'localhost:443',
-        aud: 'localhost:443',
+        iss: 'localhost:3000',
+        aud: 'localhost:3000',
         exp: Math.floor(Date.now() / 1000) + (3 * 24 * 60 * 60), // 3 days
         role: 'user',
         examiner: true
@@ -219,8 +250,8 @@ app.post('/login-fast',
     else {
       jwtClaims = {
         sub: req.user.username,
-        iss: 'localhost:443',
-        aud: 'localhost:443',
+        iss: 'localhost:3000',
+        aud: 'localhost:3000',
         exp: Math.floor(Date.now() / 1000) + 604800,
         role: 'user'
       };
@@ -240,8 +271,8 @@ app.post('/login-secure',
   (req, res) => {
     const jwtClaims = {
       sub: req.user.username,
-      iss: 'localhost:443',
-      aud: 'localhost:443',
+      iss: 'localhost:3000',
+      aud: 'localhost:3000',
       exp: Math.floor(Date.now() / 1000) + 604800,
       role: 'user'
     };
@@ -257,30 +288,21 @@ app.post('/login-secure',
 
 
 
-
-
 app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(500).send('Something broke!'); // no deberia de pasar nunca
 });
 
-// app.listen(port, () => {
-//   console.log(`Example app listening at http://localhost:${port}`);
-// });
-
 
 const httpsOptions = {
-  key: tlsServerKey,
-  cert: tlsServerCrt
+  key: fs.readFileSync('server.key'),
+  cert: fs.readFileSync('server.cert')
 };
-var server = https.createServer(httpsOptions, app);
 
-/**
-* Listen on provided port, on all network interfaces.
-*/
-server.listen(443);
-server.on('listening', () => {
-  console.log('HTTPS server running. Test it at https://localhost');
+
+// Launch HTTPS server
+https.createServer(httpsOptions, app).listen(port, () => {
+  console.log(`HTTPS server running at https://localhost:${port}`);
 });
 
 
@@ -293,6 +315,7 @@ server.on('listening', () => {
 
 
 
+// FUNCIONES AUXILIARES
 
 // Leer usuarios desde el archivo JSON
 function readUsers() {
@@ -306,13 +329,10 @@ function writeUsers(users) {
   fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2));
 }
 
-
 // Convertir Base64 a ArrayBuffer
 function base64ToArrayBuffer(base64) {
   return Buffer.from(base64, 'base64');
 }
-
-
 
 // Convertir ArrayBuffer a Base64 para almacenamiento
 function arrayBufferToBase64(buffer) {
@@ -383,3 +403,19 @@ async function verifyUserSecure(username, password) {
 
 
 
+
+function registerOAuthUser(username) {
+  const users = readUsers();
+  const exists = users.find(u => u.username === username);
+  if (!exists) {
+    users.push({
+      username,
+      provider: 'github',
+      password_scrypt_fast: null,
+      password_scrypt_secure: null,
+      salt_fast: null,
+      salt_secure: null
+    });
+    writeUsers(users);
+  }
+}
