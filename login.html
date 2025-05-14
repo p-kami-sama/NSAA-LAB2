@@ -47,9 +47,29 @@
     </p>
 
 
+    <!-- OpenID Connect login with google -->
+    <p>
+        <a href="/auth/oidc"><button type="button">Login with OIDC</button></a>
+    </p>
 
-    <p><a href="/auth/oidc"><button type="button">Login with OIDC</button></a></p>
 
+
+
+    <p>Please log in to proceed with RADIUS</p>
+    <form action="/login-radius" method="post">  <!-- when the formulary is submitted, it will be POSTed to /login-->
+        <div>
+            <label>Username:</label>
+            <input type="text" name="username" />  <!-- the name MUST match the one defined in the local 'username-password' strategy -->
+        </div>
+        <div>
+            <label>Password:</label>
+            <input type="password" name="password"/> <!-- the name MUST match the one defined in the local 'username-password' strategy -->
+        </div>
+        <div>
+            <input type="submit" value="Log In with radius" />
+        </div>
+    </form>
+      
 
 
     <p>Don't have an account yet? <a href="/register">Sign in</a> </p>

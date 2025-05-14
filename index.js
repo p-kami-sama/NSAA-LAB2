@@ -8,8 +8,15 @@ const cookieParser = require('cookie-parser');
 const crypto = require('crypto');
 const jwtSecret = crypto.randomBytes(16);
 const port = 3000;
- const https = require('https');
+const https = require('https');
 const fs = require('fs');
+
+const notifier = require('node-notifier');
+
+
+// librerías para el servidor RADIUS
+const radius = require('radius');
+const dgram = require('dgram');
 
 
 const { scrypt } = require('scrypt-pbkdf');
@@ -60,6 +67,7 @@ passport.use('username-password-fast', new LocalStrategy(
     session: false
   },
   async function (username, password, done) {
+    console.log("🚀 Entrando en LocalStrategy fast con usuario:", username);
     try {
       const isValid = await verifyUserFast(username, password);
       if (isValid) {
@@ -161,6 +169,8 @@ app.get('/auth/github/callback',
 app.get('/login', (req, res) => {
   res.sendFile('login.html', { root: __dirname });
 });
+
+
 
 
 app.post('/logout', (req, res) => {
@@ -498,3 +508,87 @@ app.get('/auth/oidc/callback',
     res.redirect('/');
   }
 );
+
+
+
+
+
+
+
+// app.post('/login-radius',
+//   passport.authenticate('local-radius', {
+//     successRedirect: '/',
+//     failureRedirect: '/register',
+//   })
+// );
+
+
+const { exec } = require('child_process');
+
+app.post('/login-radius', (req, res) => {
+  const { username, password } = req.body;
+
+  // Construir nombre de usuario con realm
+  const fullUsername = `${username}@upc.edu`;
+
+  // Crear mensaje RADIUS
+  const radMessage = `User-Name = "${fullUsername}", User-Password = "${password}"`;
+
+  // Ejecutar radclient
+  const cmd = `echo '${radMessage}' | radclient -x 127.0.0.1 auth testing123`;
+  console.log(cmd);
+  notifier.notify({title: cmd, wait: true});
+  exec(cmd, (error, stdout, stderr) => {
+    if (error) {
+      console.log('ERROR:', stdout);
+      console.error('Error ejecutando radclient:', error);
+      notifier.notify({title: 'Error ejecutando radclient:',  message: 'ERROR',wait: true});
+      return res.redirect('/login');
+    }
+    
+    // Revisar respuesta del servidor RADIUS
+    if (stdout.includes('Access-Accept')) {
+      // Autenticación exitosa
+      
+      res.cookie('user', username, { httpOnly: true });
+      notifier.notify({title: 'valid credentials', message: 'Hey there!', wait: true});
+      
+
+      const jwtClaims = {
+        sub: username,
+        iss: 'localhost:3000',
+        aud: 'localhost:3000',
+        exp: Math.floor(Date.now() / 1000) + 604800,
+        role: 'freeRADIUS'
+      };
+      const token = jwt.sign(jwtClaims, jwtSecret);
+      res.cookie('jwt', token, { httpOnly: true, secure: true });
+
+      registerRADIUSUser(username); // Registrar usuario en el archivo JSON
+      return res.redirect('/');
+      //
+    } else {
+      // Credenciales inválidas
+      console.log('Credenciales inválidas:', stdout);
+      notifier.notify({title: 'Credenciales BAD',  message: 'Hey there!',wait: true});
+      return res.redirect('/register');
+    }
+  });
+});
+
+
+function registerRADIUSUser(username) {
+  const users = readUsers();
+  const exists = users.find(u => u.username === username);
+  if (!exists) {
+    users.push({
+      username,
+      provider: 'freeRADIUS',
+      password_scrypt_fast: null,
+      password_scrypt_secure: null,
+      salt_fast: null,
+      salt_secure: null
+    });
+    writeUsers(users);
+  }
+}
