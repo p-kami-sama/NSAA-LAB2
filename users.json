@@ -1,3 +1,54 @@
 [
-
+  {
+    "username": "p-kami-sama",
+    "provider": "github",
+    "password_scrypt_fast": null,
+    "password_scrypt_secure": null,
+    "salt_fast": null,
+    "salt_secure": null
+  },
+  {
+    "username": "p",
+    "salt_fast": "G4p7D7VvIQ75GwqKQxQhJg==",
+    "salt_secure": "y59JFnbxJgaE+jJTyYYoag==",
+    "password_scrypt_fast": "PxGwtkECAyzhAnmgL2QIUw/k2iZo6cdG07yNTkjQ7xM=",
+    "password_scrypt_secure": "z+STclSdJSYjxkfBfuR8jDf25tWw1EiZ0UTLxkcCFr0="
+  },
+  {
+    "username": "paul.gonzalez@estudiantat.upc.edu",
+    "provider": "OpenIDConnect-google",
+    "password_scrypt_fast": null,
+    "password_scrypt_secure": null,
+    "salt_fast": null,
+    "salt_secure": null,
+    "sub": {
+      "id": "100880322602165014840",
+      "displayName": "Paul Gonzalez Valdes",
+      "name": {
+        "familyName": "Gonzalez Valdes",
+        "givenName": "Paul"
+      },
+      "emails": [
+        {
+          "value": "paul.gonzalez@estudiantat.upc.edu"
+        }
+      ]
+    }
+  },
+  {
+    "username": "alice",
+    "provider": "freeRADIUS",
+    "password_scrypt_fast": null,
+    "password_scrypt_secure": null,
+    "salt_fast": null,
+    "salt_secure": null
+  },
+  {
+    "username": "carla",
+    "provider": "freeRADIUS",
+    "password_scrypt_fast": null,
+    "password_scrypt_secure": null,
+    "salt_fast": null,
+    "salt_secure": null
+  }
 ]
